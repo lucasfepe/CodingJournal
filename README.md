@@ -35,3 +35,62 @@ To fix this, I plan to **remove the 50ms delay** and see if:
 - This eliminates the temporary duplicate card issue.  
 
 If that doesn’t work, I'll explore alternative approaches to ensure a **smooth expansion effect**.  
+
+---
+
+That **didn't do it**.  
+
+However, I managed to find where in the code the **"window of doom"** occurred and added this right before it to try to fix it:  
+
+```javascript
+// Find the showcase container and add the hideOverflow class immediately
+const showcaseElement = cardRef.current.closest(`.${styles.showcase}`);
+showcaseElement?.classList.add('hideOverflow');
+```
+
+And this right after:
+
+```javascript
+// Remove the hideOverflow class after animation completes
+const showcaseElement = cardRef.current?.closest(`.${styles.showcase}`);
+showcaseElement?.classList.remove('hideOverflow');
+```
+
+But this didn't fix it.  
+
+Then I realized that this is probably because **Next.js changes class names** in the style modules, so I had to take that into account.  
+
+### 🆕 New Trick!  
+I actually tried importing the same **showcase stylesheet** into the FlipCard component, but the class name was still different. Turns out, **Next.js treats each import as a separate stylesheet** and **generates unique class names** for each pure CSS selector.  
+
+The solution was to add a **custom data attribute** to the showcase element I needed to reference:  
+
+```jsx
+data-showcase-class={styles.showcase}
+```
+
+Then, I referenced it in FlipCard like this:  
+
+```javascript
+const showcaseElement = cardRef.current?.closest(`[data-showcase-class]`);
+```
+
+Lastly, I added:  
+
+```javascript
+showcaseElement?.classList.add(styles.hideOverflow);
+showcaseElement?.classList.remove(styles.hideOverflow);
+```
+
+And defined the CSS:  
+
+```css
+.hideOverflow {
+    overflow: hidden !important;
+}
+```
+
+🎉 **And voilà!** No more scrollbar flash.  
+
+> **P.S.** I tried to do it without `"!important"`, but it didn't work. **Take the win.** 😆  
+
